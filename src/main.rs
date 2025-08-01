@@ -59,7 +59,7 @@ fn create_profile() {
     //TODO: CHECK THIS NAME DOESN'T EXIST
 
     let mut profile_dir = get_walpapr_path().unwrap();
-    profile_dir.push(profile_name);
+    profile_dir.push(&profile_name);
 
     fs::create_dir(&profile_dir).expect("Error creating new profile");
 
@@ -90,12 +90,34 @@ fn create_profile() {
     colors_conf_data.push_str(&inactive);
     colors_conf_data.push_str(")");
 
-    let mut colors_file = profile_dir;
-    colors_file.push("colors.conf");
+    let mut colors_file = profile_dir.to_owned();
+    colors_file.push("colors.conf"); // DOUBLE CHECK THIS IS CORRECT
 
     file_writer(&colors_file, colors_conf_data);
 
+    println!("Input desired wallpaper directory");
+    let mut wallpaper_old_dir = String::new();
+    io::stdin().read_line(&mut wallpaper_old_dir).expect("Unable to read line");
+    wallpaper_old_dir = wallpaper_old_dir.trim().to_string();
+    //TODO: CHECK IF FILE ACTUALLY EXISTS
+    let mut new_wallpaper_dir = profile_dir.to_owned();
+    new_wallpaper_dir.push("wallpaper");
+    fs::copy(wallpaper_old_dir, &new_wallpaper_dir).expect("Wallpaper could not be copied");
+
+    println!("Generating hyprpaper.conf");
+    let mut hyprpaper_conf_data = String::new();
+
+    hyprpaper_conf_data.push_str("preload = ");
+    hyprpaper_conf_data.push_str(&new_wallpaper_dir.to_str().expect("Could not convert new_wallpaper_dir to str"));
+    hyprpaper_conf_data.push_str("\nwallpaper =, ");
+    hyprpaper_conf_data.push_str(&new_wallpaper_dir.to_str().expect("Could not convert new_wallpaper_dir to str"));
+
+    let mut hyprpaper_file = profile_dir.to_owned();
+    hyprpaper_file.push("hyprpaper.conf");
+    file_writer(&hyprpaper_file, hyprpaper_conf_data);
+    println!("New profile \'{}\' added!", &profile_name);
 }
+
 fn init() {
     if let Some(config_path) = get_walpapr_path() {
         //check if dir exists
