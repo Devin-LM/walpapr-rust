@@ -6,12 +6,12 @@ use std::path::PathBuf;
 
 fn get_walpapr_path() -> Option<PathBuf> {
     dirs::config_dir().map(|mut path| {
-        path.push("walpapr");
+        path.push("walpapr-rust");
         path
     })
 }
-fn file_writer(file_name: String, content: String) {
-    let mut file = fs::File::create(file_name).expect("Couldn't create file");
+fn file_writer(file_path: &PathBuf, content: String) {
+    let mut file = fs::File::create(file_path).expect("Couldn't create file");
     file.write(content.as_bytes())
         .expect("Data couldn't be written to {file}");
 }
@@ -28,7 +28,7 @@ fn file_reader(file_path: String) {
 fn switch_profile() {
     println!("What profile would you like to switch to: ");
     //list directories inside of get_walpapr_path()
-    let path = get_walpapr_path()
+    let path = get_walpapr_path() //CHECK FOR EMPTY AND THROW TO NEW PROFILE
         .expect("walpapr .config dir not found")
         .display()
         .to_string();
@@ -52,7 +52,49 @@ fn switch_profile() {
 }
 
 fn create_profile() {
-    println!("We be creating in here.");
+    println!("Input name of new profile");
+    let mut profile_name = String::new();
+    io::stdin().read_line(&mut profile_name).expect("Unable to read input");
+    profile_name = profile_name.trim().to_string();
+    //TODO: CHECK THIS NAME DOESN'T EXIST
+
+    let mut profile_dir = get_walpapr_path().unwrap();
+    profile_dir.push(profile_name);
+
+    fs::create_dir(&profile_dir).expect("Error creating new profile");
+
+    println!("Create colors.conf");
+
+    println!("\nActiveOne: ");
+    let mut active_one = String::new();
+    io::stdin().read_line(&mut active_one).expect("Unable to read line");
+    active_one = active_one.trim().to_string();
+
+    println!("ActiveTwo: ");
+    let mut active_two = String::new();
+    io::stdin().read_line(&mut active_two).expect("Unable to read line");
+    active_two = active_two.trim().to_string();
+
+    println!("Inactive: ");
+    let mut inactive = String::new();
+    io::stdin().read_line(&mut inactive).expect("Unable to read line");
+    inactive = inactive.trim().to_string();
+
+    let mut colors_conf_data =  String::new();
+
+    colors_conf_data.push_str("$ACTIVEONE = rgb(");
+    colors_conf_data.push_str(&active_one);
+    colors_conf_data.push_str(")\n$ACTIVETWO = rgb(");
+    colors_conf_data.push_str(&active_two);
+    colors_conf_data.push_str(")\n$INACTIVE = rgb(");
+    colors_conf_data.push_str(&inactive);
+    colors_conf_data.push_str(")");
+
+    let mut colors_file = profile_dir;
+    colors_file.push("colors.conf");
+
+    file_writer(&colors_file, colors_conf_data);
+
 }
 fn init() {
     if let Some(config_path) = get_walpapr_path() {
