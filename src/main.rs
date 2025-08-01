@@ -2,7 +2,7 @@ use dirs;
 use std::fs;
 use std::io;
 use std::io::{BufRead, BufReader, Write};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 fn get_walpapr_path() -> Option<PathBuf> {
     dirs::config_dir().map(|mut path| {
@@ -25,17 +25,33 @@ fn file_reader(file_path: String) {
     }
 }
 
-fn tests() {
-    let file = String::from("/home/dawn/testFile.txt");
-    let data = String::from("testing data");
-    file_writer(file, data);
-    file_reader(String::from("/home/dawn/testFile.txt"));
+fn switch_profile() {
+    println!("What profile would you like to switch to: ");
+    //list directories inside of get_walpapr_path()
+    let path = get_walpapr_path()
+        .expect("walpapr .config dir not found")
+        .display()
+        .to_string();
+    let mut paths = fs::read_dir(&path).unwrap();
+    print!("{{ ");
+    for dir in paths {
+        print!("{} ", dir.unwrap().file_name().display());
+    }
+    println!("}}");
+    let mut input = String::new();
+
+    io::stdin()
+        .read_line(&mut input)
+        .expect("Unable to read input");
+    paths = fs::read_dir(&path).unwrap();
+    for dir in paths {
+        if dir.unwrap().file_name().display().to_string() == input.trim() {
+            println!("MATCH");
+        }
+    }
 }
 
-fn switch_profile(input: String) {
-    println!("We be switching it up.");
-}
-fn create_profile(input: String) {
+fn create_profile() {
     println!("We be creating in here.");
 }
 fn init() {
@@ -61,8 +77,8 @@ fn main() {
         .expect("Unable to read input.");
 
     match input.trim() {
-        "switch" => switch_profile(input),
-        "new" => create_profile(input),
+        "switch" => switch_profile(),
+        "new" => create_profile(),
         _ => println!("Invalid input"),
     }
 }
