@@ -1,8 +1,10 @@
 use dirs;
 use std::fs;
+use std::fs::File;
 use std::io;
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Write, Result, Read};
 use std::path::PathBuf;
+use std::path::Path;
 
 fn get_walpapr_path() -> Option<PathBuf> {
     dirs::config_dir().map(|mut path| {
@@ -10,10 +12,26 @@ fn get_walpapr_path() -> Option<PathBuf> {
         path
     })
 }
+fn get_hyprland_path() -> Option<PathBuf> {
+    dirs::config_dir().map(|mut path| {
+        path.push("hypr");
+        path
+    })
+}
 fn file_writer(file_path: &PathBuf, content: String) {
     let mut file = fs::File::create(file_path).expect("Couldn't create file");
     file.write(content.as_bytes())
         .expect("Data couldn't be written to {file}");
+}
+fn prepend_file<P: AsRef<Path> + ?Sized>(data: &[u8], path: &P) -> Result<()> {
+    let mut f = File::open(path)?;
+    let mut content = data.to_owned();
+    f.read_to_end(&mut content)?;
+
+    let mut f = File::create(path)?;
+    f.write_all(content.as_slice())?;
+
+    Ok(())
 }
 
 fn file_reader(file_path: String) {
@@ -26,9 +44,10 @@ fn file_reader(file_path: String) {
 }
 
 fn switch_profile() {
+    let active_profile_dir = get_walpapr_path().expect("Unable to find wallpaper-rust in .config/");
     println!("What profile would you like to switch to: ");
     //list directories inside of get_walpapr_path()
-    let path = get_walpapr_path() //CHECK FOR EMPTY AND THROW TO NEW PROFILE
+    let path = get_walpapr_path() //TODO: CHECK FOR EMPTY AND THROW TO NEW PROFILE
         .expect("walpapr .config dir not found")
         .display()
         .to_string();
@@ -44,9 +63,37 @@ fn switch_profile() {
         .read_line(&mut input)
         .expect("Unable to read input");
     paths = fs::read_dir(&path).unwrap();
+    prepend_file("source = ~/.config/walpapr/active/colors.conf\n".as_bytes(), "/home/dawn/.config/hypr/hyprland.conf").expect("Error prepending to hyprland.conf file");
+    let mut temp;
     for dir in paths {
-        if dir.unwrap().file_name().display().to_string() == input.trim() {
-            println!("MATCH");
+        if dir.as_ref().unwrap().file_name().display().to_string() == input.trim() {
+            let contents = fs::read_dir(dir.unwrap().path()).unwrap();
+            for file in contents {
+                //println!("{:?}", file);
+                match file.as_ref().unwrap().file_name().to_str().expect("File doesn't exist") {
+                    "wallpaper" => {
+                        temp = active_profile_dir.to_owned();
+                        temp.push("wallpaper");
+                        fs::copy(file.unwrap().path(), temp)
+                            .expect("Unable to copy wallpaper file to active profile directory");
+                    }
+                    "hyprpaper.conf" => {
+                        temp = get_hyprland_path().expect("Unable to find hypr in .config/");
+                        temp.push("hyprpaper.conf");
+                        fs::copy(file.unwrap().path(),
+                            temp).expect("Unable to copy hyprland.conf to hypr/");
+                    }
+                    "colors.conf" => {
+                        temp = active_profile_dir.to_owned();
+                        temp.push("colors.conf");
+                        fs::copy(file.unwrap().path(), temp).expect("Unable to copy colors.conf to active profile directory");
+                    }
+                    _ => {println!("external file found in profile")}
+                }
+            }
+            // COPY ALL FILES TO .config/walpapr-rust/active/
+            // SINGLE CHANGE TO hyprpaper.conf CHECKED AT STARTUP OF SCRIPT
+            // NEW hyprland.conf LINE : source = ~/.config/walpapr/active/colors.conf
         }
     }
 }
@@ -140,6 +187,8 @@ fn main() {
         .read_line(&mut input)
         .expect("Unable to read input.");
 
+    let mut hyprland = get_hyprland_path().expect("Couldn't get hyprland path");
+    hyprland.push("hyprland.conf");
     match input.trim() {
         "switch" => switch_profile(),
         "new" => create_profile(),
