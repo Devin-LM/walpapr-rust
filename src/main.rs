@@ -12,17 +12,20 @@ fn get_walpapr_path() -> Option<PathBuf> {
         path
     })
 }
+
 fn get_hyprland_path() -> Option<PathBuf> {
     dirs::config_dir().map(|mut path| {
         path.push("hypr");
         path
     })
 }
+
 fn file_writer(file_path: &PathBuf, content: String) {
     let mut file = fs::File::create(file_path).expect("Couldn't create file");
     file.write(content.as_bytes())
         .expect("Data couldn't be written to {file}");
 }
+
 fn prepend_file<P: AsRef<Path> + ?Sized>(data: &[u8], path: &P) -> Result<()> {
     let mut f = File::open(path)?;
     let mut content = data.to_owned();
@@ -34,17 +37,32 @@ fn prepend_file<P: AsRef<Path> + ?Sized>(data: &[u8], path: &P) -> Result<()> {
     Ok(())
 }
 
-fn file_reader(file_path: String) {
-    let input = fs::File::open(file_path).expect("Couldn't open file at: {file_path}");
-    let buffered = BufReader::new(input);
+fn read_lines(file_path: PathBuf) { // TODO: Make this function more object oriented
+    let file = fs::File::open(file_path).expect("Couldn't open file at: {file_path}");
+    let buffered = BufReader::new(file);
+    let mut flag: bool = false;
+
+    let source: &str = "source = ~/.config/walpapr-rust/active/colors.conf\n";
 
     for line in buffered.lines() {
-        println!("{}", line.expect("Error with BufReader object"));
+        //println!("{}", line.expect("Error with BufReader object"));
+        if line.expect("Error with curr line: {line}") == source.trim().as_ref() {
+            flag = true;
+        }
+    }
+    let mut hyprland_conf_path = get_hyprland_path().expect("Couldn't find hypr in .config").to_owned();
+    hyprland_conf_path.push("hyprland.conf");
+    if !flag {
+        prepend_file(source.as_bytes(), hyprland_conf_path.as_path()).expect("Error prepending hyprland config file");
     }
 }
 
 fn switch_profile() {
-    let active_profile_dir = get_walpapr_path().expect("Unable to find wallpaper-rust in .config/");
+    let mut active_profile_dir = get_walpapr_path().expect("Unable to find wallpaper-rust in .config/");
+    active_profile_dir.push("active");
+    if !active_profile_dir.exists() {
+        fs::create_dir(&active_profile_dir).expect("Couldn't create active profile directory");
+    }
     println!("What profile would you like to switch to: ");
     //list directories inside of get_walpapr_path()
     let path = get_walpapr_path() //TODO: CHECK FOR EMPTY AND THROW TO NEW PROFILE
@@ -54,7 +72,9 @@ fn switch_profile() {
     let mut paths = fs::read_dir(&path).unwrap();
     print!("{{ ");
     for dir in paths {
-        print!("{} ", dir.unwrap().file_name().display());
+        if !(dir.as_ref().unwrap().file_name() == "active") {
+            print!("{} ", dir.unwrap().file_name().display());
+        }
     }
     println!("}}");
     let mut input = String::new();
@@ -63,7 +83,7 @@ fn switch_profile() {
         .read_line(&mut input)
         .expect("Unable to read input");
     paths = fs::read_dir(&path).unwrap();
-    prepend_file("source = ~/.config/walpapr/active/colors.conf\n".as_bytes(), "/home/dawn/.config/hypr/hyprland.conf").expect("Error prepending to hyprland.conf file");
+    //prepend_file("source = ~/.config/walpapr/active/colors.conf\n".as_bytes(), "/home/dawn/.config/hypr/hyprland.conf").expect("Error prepending to hyprland.conf file");
     let mut temp;
     for dir in paths {
         if dir.as_ref().unwrap().file_name().display().to_string() == input.trim() {
@@ -83,7 +103,7 @@ fn switch_profile() {
                         fs::copy(file.unwrap().path(),
                             temp).expect("Unable to copy hyprland.conf to hypr/");
                     }
-                    "colors.conf" => {
+                    "colors.conf" => { //TODO: Add support for switching between RGB and RGBA
                         temp = active_profile_dir.to_owned();
                         temp.push("colors.conf");
                         fs::copy(file.unwrap().path(), temp).expect("Unable to copy colors.conf to active profile directory");
@@ -91,11 +111,16 @@ fn switch_profile() {
                     _ => {println!("external file found in profile")}
                 }
             }
+
             // COPY ALL FILES TO .config/walpapr-rust/active/
             // SINGLE CHANGE TO hyprpaper.conf CHECKED AT STARTUP OF SCRIPT
             // NEW hyprland.conf LINE : source = ~/.config/walpapr/active/colors.conf
         }
     }
+    let mut hyprland_conf_path = get_hyprland_path().to_owned().expect("Couldn't get hypr path in config dir");
+    hyprland_conf_path.push("hyprland.conf");
+    read_lines(hyprland_conf_path); // TODO: IMPLEMENT LINE DETECTION FOR col.active_border and
+    // col.inactive_border in hyprland.conf
 }
 
 fn create_profile() {
@@ -166,11 +191,18 @@ fn create_profile() {
 }
 
 fn init() {
+    //Make sure everything is available/created ahead of time
     if let Some(config_path) = get_walpapr_path() {
         //check if dir exists
         if !config_path.exists() {
             //walpapr config dir does not exist
             fs::create_dir(config_path).expect("Error creating Walpapr .config directory.");
+
+            let mut active_profile_dir = get_walpapr_path().expect("Could not find walpapr config directory");
+            active_profile_dir.push("active");
+            if !active_profile_dir.exists() {
+                fs::create_dir(active_profile_dir).expect("Could not create active profile directory");
+            }
         }
     } else {
         eprintln!("Could not determine configuration directory.");
