@@ -1,3 +1,5 @@
+// TODO: FIX HYPRPAPER.conf GENERATION, SWAP TO NEVER COPY ONLY OVERWRITE wallpaper IN
+// walpapr-rust/active
 use dirs;
 use std::fs;
 use std::fs::File;
@@ -37,7 +39,7 @@ fn prepend_file<P: AsRef<Path> + ?Sized>(data: &[u8], path: &P) -> Result<()> {
     Ok(())
 }
 
-fn read_lines(file_path: PathBuf) { // TODO: Make this function more object oriented
+fn compare_for_line(file_path: PathBuf) { // TODO: Make this function more object oriented
     let file = fs::File::open(file_path).expect("Couldn't open file at: {file_path}");
     let buffered = BufReader::new(file);
     let mut flag: bool = false;
@@ -119,7 +121,7 @@ fn switch_profile() {
     }
     let mut hyprland_conf_path = get_hyprland_path().to_owned().expect("Couldn't get hypr path in config dir");
     hyprland_conf_path.push("hyprland.conf");
-    read_lines(hyprland_conf_path); // TODO: IMPLEMENT LINE DETECTION FOR col.active_border and
+    compare_for_line(hyprland_conf_path); // TODO: IMPLEMENT LINE DETECTION FOR col.active_border and
     // col.inactive_border in hyprland.conf
 }
 
