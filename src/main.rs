@@ -38,19 +38,17 @@ fn prepend_file<P: AsRef<Path> + ?Sized>(data: &[u8], path: &P) -> Result<()> {
 
     Ok(())
 }
-fn compare_and_replace(file_path: PathBuf, replace: &str) { // TODO: Make this function more object oriented
+fn compare_and_replace(file_path: PathBuf, replace: &str) {
     let file = fs::File::open(&file_path).expect("Couldn't open file at: {file_path}");
     let buffered = BufReader::new(file);
     let mut flag: bool = false;
 
     for line in buffered.lines() {
-        //println!("{}", line.expect("Error with BufReader object"));
-        if line.expect("Error with curr line: {line}") == replace.trim().as_ref() {
+        if &line.expect("Error with curr line: {line}").as_str() == &replace.trim() {
+            println!("CHECK");
             flag = true;
         }
     }
-//    let mut hyprland_conf_path = get_hyprland_path().expect("Couldn't find hypr in .config").to_owned();
-//    hyprland_conf_path.push("hyprland.conf");
     if !flag {
         prepend_file(replace.as_bytes(), &file_path.as_path()).expect("Error prepending file");
     }
@@ -63,7 +61,6 @@ fn switch_profile() {
         fs::create_dir(&active_profile_dir).expect("Couldn't create active profile directory");
     }
     println!("What profile would you like to switch to: ");
-    //list directories inside of get_walpapr_path()
     let path = get_walpapr_path() //TODO: CHECK FOR EMPTY AND THROW TO NEW PROFILE
         .expect("walpapr .config dir not found")
         .display()
@@ -82,13 +79,11 @@ fn switch_profile() {
         .read_line(&mut input)
         .expect("Unable to read input");
     paths = fs::read_dir(&path).unwrap();
-    //prepend_file("source = ~/.config/walpapr/active/colors.conf\n".as_bytes(), "/home/dawn/.config/hypr/hyprland.conf").expect("Error prepending to hyprland.conf file");
     let mut temp;
     for dir in paths {
         if dir.as_ref().unwrap().file_name().display().to_string() == input.trim() {
             let contents = fs::read_dir(dir.unwrap().path()).unwrap();
             for file in contents {
-                //println!("{:?}", file);
                 match file.as_ref().unwrap().file_name().to_str().expect("File doesn't exist") {
                     "wallpaper" => {
                         temp = active_profile_dir.to_owned();
@@ -96,7 +91,8 @@ fn switch_profile() {
                         fs::copy(file.unwrap().path(), temp)
                             .expect("Unable to copy wallpaper file to active profile directory");
                     }
-                    "hyprpaper.conf" => {
+                    "hyprpaper.conf" => { // current wallpaper needs to be unloaded before new one
+                        // can be loaded
                         temp = get_hyprland_path().expect("Unable to find hypr in .config/");
                         temp.push("hyprpaper.conf");
                         fs::copy(file.unwrap().path(),
