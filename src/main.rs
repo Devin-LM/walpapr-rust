@@ -38,24 +38,21 @@ fn prepend_file<P: AsRef<Path> + ?Sized>(data: &[u8], path: &P) -> Result<()> {
 
     Ok(())
 }
-
-fn compare_for_line(file_path: PathBuf) { // TODO: Make this function more object oriented
-    let file = fs::File::open(file_path).expect("Couldn't open file at: {file_path}");
+fn compare_and_replace(file_path: PathBuf, replace: &str) { // TODO: Make this function more object oriented
+    let file = fs::File::open(&file_path).expect("Couldn't open file at: {file_path}");
     let buffered = BufReader::new(file);
     let mut flag: bool = false;
 
-    let source: &str = "source = ~/.config/walpapr-rust/active/colors.conf\n";
-
     for line in buffered.lines() {
         //println!("{}", line.expect("Error with BufReader object"));
-        if line.expect("Error with curr line: {line}") == source.trim().as_ref() {
+        if line.expect("Error with curr line: {line}") == replace.trim().as_ref() {
             flag = true;
         }
     }
-    let mut hyprland_conf_path = get_hyprland_path().expect("Couldn't find hypr in .config").to_owned();
-    hyprland_conf_path.push("hyprland.conf");
+//    let mut hyprland_conf_path = get_hyprland_path().expect("Couldn't find hypr in .config").to_owned();
+//    hyprland_conf_path.push("hyprland.conf");
     if !flag {
-        prepend_file(source.as_bytes(), hyprland_conf_path.as_path()).expect("Error prepending hyprland config file");
+        prepend_file(replace.as_bytes(), &file_path.as_path()).expect("Error prepending file");
     }
 }
 
@@ -121,7 +118,7 @@ fn switch_profile() {
     }
     let mut hyprland_conf_path = get_hyprland_path().to_owned().expect("Couldn't get hypr path in config dir");
     hyprland_conf_path.push("hyprland.conf");
-    compare_for_line(hyprland_conf_path); // TODO: IMPLEMENT LINE DETECTION FOR col.active_border and
+    compare_and_replace(hyprland_conf_path, "source = ~/.config/walpapr-rust/active/colors.conf\n");
     // col.inactive_border in hyprland.conf
 }
 
