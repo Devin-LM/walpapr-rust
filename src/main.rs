@@ -39,7 +39,8 @@ fn prepend_file<P: AsRef<Path> + ?Sized>(data: &[u8], path: &P) -> Result<()> {
 
     Ok(())
 }
-fn compare_and_replace(file_path: PathBuf, replace: &str) {
+fn compare_and_replace(file_path: &PathBuf, replace: &str) -> bool { //Returns true if file was
+    //prepended, false if file was untouched
     let file = fs::File::open(&file_path).expect("Couldn't open file at: {file_path}");
     let buffered = BufReader::new(file);
     let mut flag: bool = false;
@@ -52,7 +53,21 @@ fn compare_and_replace(file_path: PathBuf, replace: &str) {
     }
     if !flag {
         prepend_file(replace.as_bytes(), &file_path.as_path()).expect("Error prepending file");
+        return true;
     }
+    return false;
+}
+fn replace_word_in_file(path: &PathBuf, from: &str, to: &str) {
+    let mut file = File::open(&path).expect("Unable to open file.");
+    let mut data = String::new();
+    file.read_to_string(&mut data).expect("Couldn't read from file.");
+    drop(file);
+
+    let new_data = data.replace(from, to);
+
+    let mut dst = File::create(&path).expect("File couldn't be created.");
+
+    dst.write(new_data.as_bytes()).expect("Couldn't write to new file.");
 }
 
 fn switch_profile() {
@@ -118,7 +133,11 @@ fn switch_profile() {
     }
     let mut hyprland_conf_path = get_hyprland_path().to_owned().expect("Couldn't get hypr path in config dir");
     hyprland_conf_path.push("hyprland.conf");
-    compare_and_replace(hyprland_conf_path, "source = ~/.config/walpapr-rust/active/colors.conf\n");
+    let prepended = compare_and_replace(&hyprland_conf_path, "source = ~/.config/walpapr-rust/active/colors.conf\n"); //setup flag
+    if prepended {
+        replace_word_in_file(&hyprland_conf_path, "col.active_border = ", "col.active_border = $ACTIVE_ONE $ACTIVE_TWO 45deg # ");
+        replace_word_in_file(&hyprland_conf_path, "col.inactive_border = ", "col.inactive_border = $INACTIVE # ");
+    }
     // col.inactive_border in hyprland.conf
 }
 
