@@ -1,5 +1,3 @@
-// TODO: FIX HYPRPAPER.conf GENERATION, SWAP TO NEVER COPY ONLY OVERWRITE wallpaper IN
-// walpapr-rust/active
 use dirs;
 use std::fs;
 use std::fs::File;
@@ -8,6 +6,7 @@ use std::io::{BufRead, BufReader, Write, Result, Read};
 use std::path::PathBuf;
 use std::path::Path;
 use std::process::{Command, Stdio};
+use walkdir::WalkDir;
 
 fn get_walpapr_path() -> Option<PathBuf> {
     dirs::config_dir().map(|mut path| {
@@ -76,12 +75,21 @@ fn switch_profile() {
     if !active_profile_dir.exists() {
         fs::create_dir(&active_profile_dir).expect("Couldn't create active profile directory");
     }
-    println!("What profile would you like to switch to: ");
-    let path = get_walpapr_path() //TODO: CHECK FOR EMPTY AND THROW TO NEW PROFILE
+
+    let path = get_walpapr_path()
         .expect("walpapr .config dir not found")
         .display()
         .to_string();
+
+    if WalkDir::new(&path).into_iter().count() <= 4 {
+        println!("No profiles found, create a new one!");
+        create_profile();
+    }
+
+    println!("What profile would you like to switch to: ");
+
     let mut paths = fs::read_dir(&path).unwrap();
+
     print!("{{ ");
     for dir in paths {
         if !(dir.as_ref().unwrap().file_name() == "active") {
