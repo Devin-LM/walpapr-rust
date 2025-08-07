@@ -125,7 +125,7 @@ fn switch_profile() {
                         Command::new("hyprpaper").stdout(Stdio::null()).spawn().unwrap(); // spawn
                         // hyprpaper in the background and pipe stdout to /dev/null
                     }
-                    "colors.conf" => { //TODO: Add support for switching between RGB and RGBA
+                    "colors.conf" => {
                         temp = active_profile_dir.to_owned();
                         temp.push("colors.conf");
                         fs::copy(file.unwrap().path(), temp).expect("Unable to copy colors.conf to active profile directory");
@@ -162,6 +162,17 @@ fn create_profile() {
     fs::create_dir(&profile_dir).expect("Error creating new profile");
 
     println!("Create colors.conf");
+    let mut rgba = false;
+    println!("Include alpha? (yes/y/no/N):");
+    let mut rgb_switch = String::new();
+    io::stdin().read_line(&mut rgb_switch).expect("Couldn't read line");
+    match rgb_switch.as_str().trim() {
+        "yes" => {rgba = true},
+        "y" => {rgba = true},
+        "no" => {rgba = false},
+        "n" => {rgba = false},
+        _ => {println!("Not expected");}
+    }
 
     println!("\nActiveOne: ");
     let mut active_one = String::new();
@@ -180,13 +191,23 @@ fn create_profile() {
 
     let mut colors_conf_data =  String::new();
 
-    colors_conf_data.push_str("$ACTIVEONE = rgb(");
-    colors_conf_data.push_str(&active_one);
-    colors_conf_data.push_str(")\n$ACTIVETWO = rgb(");
-    colors_conf_data.push_str(&active_two);
-    colors_conf_data.push_str(")\n$INACTIVE = rgb(");
-    colors_conf_data.push_str(&inactive);
-    colors_conf_data.push_str(")");
+    if !rgba { //TODO: find better way of doing this
+        colors_conf_data.push_str("$ACTIVEONE = rgb(");
+        colors_conf_data.push_str(&active_one);
+        colors_conf_data.push_str(")\n$ACTIVETWO = rgb(");
+        colors_conf_data.push_str(&active_two);
+        colors_conf_data.push_str(")\n$INACTIVE = rgb(");
+        colors_conf_data.push_str(&inactive);
+        colors_conf_data.push_str(")");
+    } else {
+        colors_conf_data.push_str("$ACTIVEONE = rgba(");
+        colors_conf_data.push_str(&active_one);
+        colors_conf_data.push_str(")\n$ACTIVETWO = rgba(");
+        colors_conf_data.push_str(&active_two);
+        colors_conf_data.push_str(")\n$INACTIVE = rgba(");
+        colors_conf_data.push_str(&inactive);
+        colors_conf_data.push_str(")");
+    }
 
     let mut colors_file = profile_dir.to_owned();
     colors_file.push("colors.conf"); // DOUBLE CHECK THIS IS CORRECT
