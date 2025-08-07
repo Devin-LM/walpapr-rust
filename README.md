@@ -5,5 +5,6 @@ Rewriting my personal Hyprland themeing script in rust
 Install using rust's cargo
 ```
 git clone https://github.com/Devin-LM/walpapr-rust.git
+cd walpapr-rust
 cargo install --path .
 ```
