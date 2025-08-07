@@ -7,6 +7,7 @@ use std::io;
 use std::io::{BufRead, BufReader, Write, Result, Read};
 use std::path::PathBuf;
 use std::path::Path;
+use std::process::{Command, Stdio};
 
 fn get_walpapr_path() -> Option<PathBuf> {
     dirs::config_dir().map(|mut path| {
@@ -91,12 +92,15 @@ fn switch_profile() {
                         fs::copy(file.unwrap().path(), temp)
                             .expect("Unable to copy wallpaper file to active profile directory");
                     }
-                    "hyprpaper.conf" => { // current wallpaper needs to be unloaded before new one
-                        // can be loaded
+                    "hyprpaper.conf" => {
                         temp = get_hyprland_path().expect("Unable to find hypr in .config/");
                         temp.push("hyprpaper.conf");
                         fs::copy(file.unwrap().path(),
                             temp).expect("Unable to copy hyprland.conf to hypr/");
+                        Command::new("killall").arg("hyprpaper").output().unwrap(); // kill active
+                        // hyprpaper sessions
+                        Command::new("hyprpaper").stdout(Stdio::null()).spawn().unwrap(); // spawn
+                        // hyprpaper in the background and pipe stdout to /dev/null
                     }
                     "colors.conf" => { //TODO: Add support for switching between RGB and RGBA
                         temp = active_profile_dir.to_owned();
