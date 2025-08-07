@@ -135,7 +135,7 @@ fn switch_profile() {
     hyprland_conf_path.push("hyprland.conf");
     let prepended = compare_and_replace(&hyprland_conf_path, "source = ~/.config/walpapr-rust/active/colors.conf\n"); //setup flag
     if prepended {
-        replace_word_in_file(&hyprland_conf_path, "col.active_border = ", "col.active_border = $ACTIVE_ONE $ACTIVE_TWO 45deg # ");
+        replace_word_in_file(&hyprland_conf_path, "col.active_border = ", "col.active_border = $ACTIVEONE $ACTIVETWO 45deg # ");
         replace_word_in_file(&hyprland_conf_path, "col.inactive_border = ", "col.inactive_border = $INACTIVE # ");
     }
     // col.inactive_border in hyprland.conf
