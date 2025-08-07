@@ -1,10 +1,7 @@
 use dirs;
-use std::fs;
-use std::fs::File;
-use std::io;
-use std::io::{BufRead, BufReader, Write, Result, Read};
-use std::path::PathBuf;
-use std::path::Path;
+use std::fs::{self, File};
+use std::io::{self, BufRead, BufReader, Write, Result, Read};
+use std::path::{PathBuf, Path};
 use std::process::{Command, Stdio};
 use walkdir::WalkDir;
 
@@ -38,8 +35,9 @@ fn prepend_file<P: AsRef<Path> + ?Sized>(data: &[u8], path: &P) -> Result<()> {
 
     Ok(())
 }
-fn compare_and_replace(file_path: &PathBuf, replace: &str) -> bool { //Returns true if file was
-    //prepended, false if file was untouched
+
+//Returns true if file was prepended, false if file was untouched
+fn compare_and_replace(file_path: &PathBuf, replace: &str) -> bool {
     let file = fs::File::open(&file_path).expect("Couldn't open file at: {file_path}");
     let buffered = BufReader::new(file);
     let mut flag: bool = false;
@@ -56,6 +54,7 @@ fn compare_and_replace(file_path: &PathBuf, replace: &str) -> bool { //Returns t
     }
     return false;
 }
+
 fn replace_word_in_file(path: &PathBuf, from: &str, to: &str) {
     let mut file = File::open(&path).expect("Unable to open file.");
     let mut data = String::new();
@@ -120,6 +119,7 @@ fn switch_profile() {
                         temp.push("hyprpaper.conf");
                         fs::copy(file.unwrap().path(),
                             temp).expect("Unable to copy hyprland.conf to hypr/");
+                        // TODO: LOOK INTO AWAIT FUNCTIONALITY
                         Command::new("killall").arg("hyprpaper").output().unwrap(); // kill active
                         // hyprpaper sessions
                         Command::new("hyprpaper").stdout(Stdio::null()).spawn().unwrap(); // spawn
@@ -133,20 +133,16 @@ fn switch_profile() {
                     _ => {println!("external file found in profile")}
                 }
             }
-
-            // COPY ALL FILES TO .config/walpapr-rust/active/
-            // SINGLE CHANGE TO hyprpaper.conf CHECKED AT STARTUP OF SCRIPT
-            // NEW hyprland.conf LINE : source = ~/.config/walpapr/active/colors.conf
         }
     }
+
     let mut hyprland_conf_path = get_hyprland_path().to_owned().expect("Couldn't get hypr path in config dir");
     hyprland_conf_path.push("hyprland.conf");
-    let prepended = compare_and_replace(&hyprland_conf_path, "source = ~/.config/walpapr-rust/active/colors.conf\n"); //setup flag
+    let prepended = compare_and_replace(&hyprland_conf_path, "source = ~/.config/walpapr-rust/active/colors.conf\n");
     if prepended {
         replace_word_in_file(&hyprland_conf_path, "col.active_border = ", "col.active_border = $ACTIVEONE $ACTIVETWO 45deg # ");
         replace_word_in_file(&hyprland_conf_path, "col.inactive_border = ", "col.inactive_border = $INACTIVE # ");
     }
-    // col.inactive_border in hyprland.conf
 }
 
 fn create_profile() {
