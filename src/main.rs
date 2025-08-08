@@ -82,7 +82,7 @@ fn switch_profile() {
 
     if WalkDir::new(&path).into_iter().count() <= 4 {
         println!("No profiles found, create a new one!");
-        create_profile();
+        create_profile().expect("Couldn't create new profile");
     }
 
     println!("What profile would you like to switch to: ");
@@ -148,17 +148,13 @@ fn switch_profile() {
 fn generate_profile(profile_dir: PathBuf, colors_data: String, wallpaper_dir: &Path) {
     // This is where we will handle file creation instead of streamlining it
 
-    //fs::create_dir(&profile_dir);
-
     //Generate colors.conf from provided values
     let mut colors_file = profile_dir.to_owned();
     colors_file.push("colors.conf");
-    //file_writer(&colors_file, colors_data);
 
     //Make copy of desired wallpaper picture
     let mut new_wallpaper_dir = profile_dir.to_owned();
     new_wallpaper_dir.push("wallpaper");
-    //fs::copy(wallpaper_dir, &new_wallpaper_dir);
 
 
     let wallpaper_str = &new_wallpaper_dir.to_str().expect("Couldn't convert new_wallpaper_dir to str");
@@ -175,7 +171,6 @@ fn generate_profile(profile_dir: PathBuf, colors_data: String, wallpaper_dir: &P
     //Touch hyprpaper.conf file
     let mut hyprpaper_file = profile_dir.to_owned();
     hyprpaper_file.push("hyprpaper.conf");
-    //file_writer(&hyprpaper_file, hyprpaper_data);
 
     let files = || -> Result<()> {
         fs::create_dir(&profile_dir)?;
@@ -233,24 +228,11 @@ fn create_profile() -> Result<()> {
     io::stdin().read_line(&mut inactive).expect("Unable to read line");
     inactive = inactive.trim().to_string();
 
-    let mut colors_data =  String::new();
-
-    if !rgba { //TODO: find better way of doing this
-        colors_data.push_str("$ACTIVEONE = rgb(");
-        colors_data.push_str(&active_one);
-        colors_data.push_str(")\n$ACTIVETWO = rgb(");
-        colors_data.push_str(&active_two);
-        colors_data.push_str(")\n$INACTIVE = rgb(");
-        colors_data.push_str(&inactive);
-        colors_data.push_str(")");
+    let colors_data;
+    if !rgba {
+        colors_data = format!("$ACTIVEONE = rgb({})\n$ACTIVETWO = rgb({})\nINACTIVE = rgb({})", &active_one, &active_two, &inactive);
     } else {
-        colors_data.push_str("$ACTIVEONE = rgba(");
-        colors_data.push_str(&active_one);
-        colors_data.push_str(")\n$ACTIVETWO = rgba(");
-        colors_data.push_str(&active_two);
-        colors_data.push_str(")\n$INACTIVE = rgba(");
-        colors_data.push_str(&inactive);
-        colors_data.push_str(")");
+        colors_data = format!("$ACTIVEONE = rgba({})\n$ACTIVETWO = rgba({})\nINACTIVE = rgba({})", &active_one, &active_two, &inactive);
     }
 
     let mut colors_file = profile_dir.to_owned();
@@ -305,7 +287,10 @@ fn main() {
     hyprland.push("hyprland.conf");
     match input.trim() {
         "switch" => switch_profile(),
-        "new" => create_profile().expect("Profile could not be created"),
+        "new" => match create_profile() {
+            Ok(_c) => {},
+            Err(e) => {panic!("Couldn't create new profile: {e}")},
+        },
         _ => println!("Invalid input"),
     }
 }
